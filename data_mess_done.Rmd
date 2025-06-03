@@ -1,0 +1,268 @@
+---
+title: "МЕСИВО ДАННЫХ"
+output: html_notebook
+---
+
+### Задача 1
+
+```{r echo=TRUE}
+(un_votes_raw <- tibble::tribble(
+  ~country_year_vote,         ~issue_code,
+  "USA_2020_1",              "NUCL",
+  "China_2021_2",            "HR",
+  "Russia_2019_3",           "NUCL",
+  "Germany20203",            "TRADE",
+  "France_2021_NA",          "ENV",
+  "UK_2020_2",               "HR",
+  "Brazil_2018_1",           "TRADE",
+  "India_2021_ 3",           "NUCL",
+  "Japan20212",              "ENV",
+  "SouthAfrica_2019_1",      "HR"
+))
+```
+Разделите столбец **country_year_vote** столбцы: country, year, vote
+Очистите столбец **vote**, уберите NA
+Создайте новый столбец **vote_meaning**, в котором создайе текстовые значения: 1 = "Да", 2 = "Нет", 3 = "Воздержался"
+Стандартизируйте **issue_code** с правильными метками:
+
+1. "NUCL" = "Ядерное разоружение"
+2. "HR" = "Права человека"
+3. "TRADE" = "Торговые соглашения"
+4. "ENV" = "Защита окружающей среды"
+
+#### Ответ
+```{r echo=TRUE}
+library(tidyverse)
+
+(un_votes <- un_votes_raw %>%
+  mutate(
+    country = unlist(str_extract_all(un_votes_raw$country_year_vote, "^[:alpha:]+")),
+    year = unlist(str_extract_all(un_votes_raw$country_year_vote, "[:number:]{4}")),
+    vote = unlist(str_extract_all(un_votes_raw$country_year_vote, "(.$)|(NA$)"))) %>%
+  select(-1) %>%
+  relocate(country, .before = issue_code))
+
+un_votes <- un_votes[!is.na(as.numeric(un_votes$vote)),]
+
+(un_votes_relocte <- un_votes %>%
+  mutate(vote_meaning = case_when(
+    vote == 1 ~ "Да",
+    vote == 2 ~ "Нет",
+    vote == 3 ~ "Воздержался"
+  )) %>%
+  mutate(issue_code = case_when(
+    issue_code == "NUCL" ~ "Ядерное разоружение",
+    issue_code == "HR" ~ "Права человека",
+    issue_code == "TRADE" ~ "Торговые соглашения",
+    issue_code == "ENV" ~ "Защита окружающей среды",
+  )) %>%
+  relocate(issue_code, .after = vote_meaning))
+```
+
+### Задача 2
+
+```{r echo=TRUE}
+econ_text <- "Country|GDP(billion)|Inflation|Debt/GDP
+USA|22940.0|7.0%|132.8%
+China|17734.0|2.5%|66.8%
+Germany|4226.0|3.1%|69.3%
+Japan|4937.0|0.2%|262.5%
+UK|3186.0|9.1%|101.9%
+France|2937.0|5.2%|112.9%
+India|3173.0|6.7%|89.6%
+Brazil|1608.0|10.1%|93.9%
+Russia|1831.0|13.7%|19.5%
+Canada|1990.0|6.8%|117.2%"
+print(econ_text)
+```
+Преобразуйте этот текстовый блок в таблицу
+Очистите все числовые столбцы и переведите их в число
+Создайте новый столбец **debt_level**, который классифицирует долг:
+
+1. "Низкий", если Долг/ВВП < 60%
+2. "Средний", если 60% ≤ Долг/ВВП < 100%
+3. "Высокий", если Долг/ВВП ≥ 100%
+
+Создайте новый столбец **inflation_status**, который классифицируует инфляцию:
+
+1. "Низкий", если Инфляция < 3%
+2. "Умеренный", если 3% ≤ Инфляция < 6%
+3. "Высокий", если Инфляция ≥ 6%
+
+#### Ответ
+```{r echo=TRUE}
+(econ_table <- read.table(text = econ_text, sep = "|", header = T))
+
+econ_table$Inflation <- as.numeric(sub("%", "", econ_table$Inflation))
+econ_table$Debt.GDP <- as.numeric(sub("%", "", econ_table$Debt.GDP))
+
+(econ_table <- econ_table %>%
+  mutate(debt_level = case_when(
+    Debt.GDP < 60 ~ "Низкий",
+    Debt.GDP %in% seq(60, 100, 0.1) ~ "Средний",
+    Debt.GDP >= 100  ~ "Высокий"
+  )) %>%
+    mutate(inflation_status = case_when(
+    Inflation < 3 ~ "Низкий", 
+    Inflation %in% seq(3, 6, by = 0.1) ~ "Умеренный",
+    Inflation > 6 ~ "Высокий"
+  )) %>%
+    relocate(inflation_status, .after = Inflation))
+
+```
+
+
+### Задача 3 (ультра)
+
+```{r echo=TRUE}
+country_basic <- tibble::tribble(
+  ~ctry_code, ~ctry_name,         ~continent,
+  "US",      "United States",     "North America",
+  "CN",      "China",             "Asia",
+  "DE",      "Germany",           "Europe",
+  "JP",      "Japan",             "Asia",
+  NA,        "United Kingdom",    "Europe",
+  "FR",      "France",            "Europe",
+  "IN",      "India",             "Asia",
+  "BR",      "Brazil",            "South America",
+  "RU",      "Russia",            "Eurasia",
+  "CA",      "Canada",            "North America",
+  "AU",      "Australia",         "Oceania",
+  "ZA",      "South Africa",      "Africa",
+  "MX",      "Mexico",            "North America"
+)
+
+country_names <- tibble::tribble(
+  ~iso3, ~alt_name,            ~official_name,
+  "USA",  "USA",                "United States of America",
+  "CHN",  "People's China",     "People's Republic of China",
+  "DEU",  "Federal Germany",    "Federal Republic of Germany",
+  "JPN",  "Japan",              "State of Japan",
+  "GBR",  "Great Britain",      "United Kingdom of Great Britain and Northern Ireland",
+  "FRA",  "French Republic",    "French Republic",
+  "IND",  "India",              "Republic of India",
+  "BRA",  "Brazil",             "Federative Republic of Brazil",
+  "RUS",  "Russian Federation", "Russian Federation",
+  "CAN",  "Canada",             "Canada",
+  "AUS",  "Australia",          "Commonwealth of Australia",
+  "ZAF",  "South Africa",       "Republic of South Africa"
+)
+
+country_econ <- tibble::tribble(
+  ~country_num, ~econ_status,    ~income_group,
+  1,           "Developed",      "High income",
+  2,           "Developing",     "Upper middle",
+  3,           "Developed",      "High income",
+  4,           "Developed",      "High income",
+  5,           "Developed",      "High income",
+  6,           "Developed",      "High income",
+  7,           "Developing",     "Lower middle",
+  8,           "Developing",     "Upper middle",
+  9,           "Developing",     "Upper middle",
+  10,          "Developed",      "High income",
+  11,          "Developed",      "High income",
+  12,          "Developing",     "Upper middle"
+)
+
+country_pol <- tibble::tribble(
+  ~id, ~pol_system,      ~taxfreedom_index,
+  "United States", "Federal republic", 83,
+  "China",        "Communist state",  10,
+  "Germany",      "Federal republic", 94,
+  "Japan",        "Constitutional monarchy", 96,
+  "UK",           "Constitutional monarchy", 93,
+  "France",       "Semi-presidential", 90,
+  "India",        "Federal republic", 75,
+  "Brazil",       "Federal republic", 74,
+  "Russia",       "Federal semi-presidential", 20,
+  "Canada",       "Federal parliamentary", 98,
+  "Australia",    "Federal parliamentary", 97,
+  "South Africa", "Parliamentary republic", 79
+)
+
+country_xref <- tibble::tribble(
+  ~num, ~iso2, ~iso3, ~name_short,
+  1,    "US",  "USA", "US",
+  2,    "CN",  "CHN", "China",
+  3,    "DE",  "DEU", "Germany",
+  4,    "JP",  "JPN", "Japan",
+  5,    "GB",  "GBR", "UK",
+  6,    "FR",  "FRA", "France",
+  7,    "IN",  "IND", "India",
+  8,    "BR",  "BRA", "Brazil",
+  9,    "RU",  "RUS", "Russia",
+  10,   "CA",  "CAN", "Canada",
+  11,   "AU",  "AUS", "Australia",
+  12,   "ZA",  "ZAF", "S. Africa",
+  13,   "MX",  "MEX", "Mexico"
+)
+```
+Согласование ключей:
+
+1. Создать совпадающие ключи для всех таблиц
+2. Обработать различные системы кодирования (iso2, iso3, country_num, id)
+3. Стандартизировать названия стран (например, "Britain" или "United Kingdom" и т.д.)
+
+Очистка данных:
+
+1. Исправьте NA в **ctrl_code**
+2. Стандартизировать названия континентов
+3. Очистить "S. Africa" и "South Africa" в таблице внешних ссылок
+4. Исправьте несогласованную нумерацию econ_status
+
+Сложное объединение:
+
+1. Объединить все пять таблиц в один комплексный набор данных. При необходимости используйте несколько ключей объединения
+2. Сохранить **ВСЕ** страны, которые отображаются в любой таблице
+3. Соответствующим образом обработать повторяющиеся столбцы
+
+Производные поля:
+
+1. Создать столбец **development_status**, который объединяет **econ_status** и **income_group**
+2. Создать **taxfreedom_category** основанную на **taxfreedom_index**:
+    * "Свободный" (≥80)
+    * "Частично свободный" (50-79)
+    * "Несвободный" (<50)
+
+Валидация данных:
+
+1. Убедитесь, что ни одна страна не была потеряна при слиянии
+2. Убедитесь, что коды iso2/iso3 совпадают там, где они существуют
+
+#### Ответ
+```{r echo=TRUE}
+colnames(country_xref)[1] <- "country_id"
+country_xref$name_short[5] <- "Britain"
+country_xref$name_short[12] <- "South Africa"
+
+colnames(country_econ)[1] <- "country_id"
+
+country_basic[5,1] <- "GB"
+country_basic[5,2] <- "Great Britain"
+
+colnames(country_pol)[1] <- "country_name"
+country_pol$country_name[5] <- "Britain"
+country_pol$country_name[1] <- "US"
+
+country_merged <- country_xref %>%
+  left_join(country_econ, by = "country_id") %>%
+  left_join(country_basic, by = c("iso2" = "ctry_code")) %>%
+  left_join(country_names, by = "iso3") %>%
+  left_join(country_pol, c("name_short" = "country_name"))
+
+country_merged <- country_merged %>%
+  mutate(evelopment_status = paste(econ_status, income_group, sep = "-")) %>%
+  select(-econ_status, -income_group) %>%
+  mutate(taxfreedom_category = case_when(
+    taxfreedom_index >= 80 ~ "Свободный",
+    taxfreedom_index %in% c(50:79) ~ "Частично свободный",
+    taxfreedom_index < 50 ~ "Несвободный"))
+
+country_merged$iso3 == country_xref$iso3
+
+legit_check <- country_merged$iso3 %>% 
+  str_extract_all("[:upper:][:upper:]")
+
+country_merged$iso2 == legit_check
+```
+
