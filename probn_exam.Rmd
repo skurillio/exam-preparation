@@ -1,0 +1,54 @@
+---
+title: "Kirill"
+output: html_notebook
+---
+
+```{r libraries}
+library(tidyverse)
+library(readxl)
+library(car)
+library(lmtest)
+```
+
+```{r reading files}
+fae <- read_csv("fae.csv")
+fsi <- read_excel("FSI-2023-DOWNLOAD.xlsx")
+```
+
+```{r clearing data}
+fae <- fae %>%
+  filter(`Series Name` == "Total natural resources rents (% of GDP)") %>%
+  select(`Country Name`, `2021 [YR2021]`)
+colnames(fae)[2] <- "yr2021"
+fae$yr2021 <- as.numeric(fae$yr2021)
+print(fae)
+
+(fsi <- fsi %>%
+  select(-c(2:4)))
+```
+
+```{r merging}
+data <- left_join(fsi, fae, by = c("Country" = "Country Name"))
+(data <- na.omit())
+
+data <- data %>%
+  filter(!is.na(yr2021))
+
+```
+
+```{r visulation}
+
+```
+
+```{r modeling №1}
+model <- lm(`C2: Factionalized Elites` ~ yr2021, data = data)
+summary(model)
+```
+
+```{r validation №1}
+shapiro.test(model$residuals)
+hist(model$residuals)
+bptest(model)
+```
+
+
