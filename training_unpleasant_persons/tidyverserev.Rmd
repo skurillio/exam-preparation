@@ -1,0 +1,112 @@
+---
+title: "Revising tidyverse"
+output: html_notebook
+---
+
+```{r Загрузка библиотек}
+library(tidyverse)
+library(gapminder)
+library(readxl)
+data(gapminder)
+```
+
+```{r Базовый dplyr}
+#filter
+gapminder %>% filter(year == 2007 & country == "Albania")
+gapminder %>% filter(year > 1972)
+
+#select
+gapminder %>% select(country, year, pop)
+gapminder %>% select(1, 5:6)
+
+#mutate + case_when
+gapminder %>%
+  mutate(continent = case_when(
+    continent == "Africa" ~ "Жена Антона",
+    T ~ continent
+  )) %>%
+  filter(continent == "Жена Антона")
+
+#summarize
+gapminder %>%
+  summarise(mean_pop = mean(pop))
+
+#arrange
+gapminder %>%
+  arrange(desc(lifeExp))
+
+#group_by
+gapminder %>%
+  group_by(continent, year) %>%
+  summarise(mean_pop = mean(pop),
+            mediana_lifeExp = median(lifeExp))
+
+```
+
+```{r Мердж с помощью dplyr}
+(gapminder_part1 <- gapminder %>% select(1,3,4))
+(gapminder_part2 <- gapminder %>% select(1,3,5))
+
+#join-ы
+df1 <- left_join(gapminder_part1, gapminder_part2, by = c("country", "year"))
+df2 <- right_join(gapminder_part2, gapminder_part1, by = c("country", "year"))
+full_join(gapminder_part1, gapminder_part2, by = c("country", "year"))
+inner_join(gapminder_part1, gapminder_part2, by = c("country", "year"))
+```
+
+
+```{r Повторение tidyr}
+trenirovka_pivot <- read_excel("trenirovka_pivot.xlsx")
+
+tidyr_train <- trenirovka_pivot %>%
+  pivot_longer(cols = -Наблюдения, 
+               names_to = "ID_наблюдения", 
+               values_to = "Значение") %>%
+  pivot_wider(names_from = Наблюдения, 
+              values_from = Значение)
+
+exchel_task4 <- read_excel("exchel_task4.xlsx")
+separated_table <- separate(exchel_task4, col = "hemisphere|continent", 
+                            into = c("hemishpere", "continent"))
+```
+
+```{r Учим стрингр}
+text_emails <- "Емейлы Виноградова: mihunckikgangster228@gmail.com, anton_otlichnik@yandex.ru, alisa_boz, zhannestavim100@mail.ru"
+
+pattern_email <- "\\b[a-z]+(_[a-z]+)?(\\d+)?@\\w+\\.\\w{2,}\\b"
+
+str_extract_all(text_emails, pattern_email)
+
+text_names <- "Красавчики: Скуридин Кирилл Сергеевич, Михайлов Адам Кириллович, Савченко Александр, Артем Бусов, Маирбек Асланов"
+
+pattern_names <- "\\b[А-Я][а-я]+\\s[А-Я][а-я]+(\\s[А-Я][а-я]+)?\\b"
+
+str_extract_all(text_names, pattern_names)
+
+text_dlya_dashi <- " Всем привет!!!!!!!! Я с канала         сроу токс. Я манипулирую над Мишей.... "
+
+text_dlya_dashi %>%
+  str_replace_all("\\s+", " ") %>%
+  str_replace_all("[:punct:]", "") %>%
+  str_trim()
+
+```
+
+```{r}
+#оставить только афганистан
+(gapminder <- gapminder %>%
+  filter(country == "Afghanistan"))
+```
+
+```{r}
+
+z_score <- function(x) {
+  if (is.vector(x) == FALSE) {warning("Ожидается вектор, а не то, что Вы вставили")}
+  y <- (x-mean(x))/sd(x)
+  return (y)
+}
+
+z_score(c(1,2,3))
+z_score(gapminder)
+```
+
