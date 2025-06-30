@@ -109,8 +109,8 @@ library(topicmodels)
 library(tm)
 
 text_data <- readRDS("vector.rds")
-#стеминг
-stemming <- stemDocument(tolower(text_data), language = "english")
+#лемматизация
+lemmatiz <- stemDocument(tolower(text_data), language = "english")
 
 #соотношение уникальных слов ко всех и график этого
 #создаем корпус слов (разбиваем текст на слова)
